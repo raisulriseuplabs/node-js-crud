@@ -3,25 +3,7 @@ import bcrypt from 'bcrypt';
 
 const EmployeeController = {
 
-    async login(req, res) {
-        try {
-            const { email, password } = req.body;
-            if (!email) return res.status(400).json({ error: 'Email is required' });
-            if (!password) return res.status(400).json({ error: 'Password is required' });
-            const employee = await prisma.employee.findUnique({ where: { email } });
-            if (!employee) return res.status(404).json({ error: 'Employee not found' });
-            const match = await bcrypt.compare(password, employee.password);
-            if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-            delete employee.password;
-            res.json(employee);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: 'Internal server error' });
-        }
-    },
-
     async create(req, res) {
-        console.log(req.body);
         try {
             const { name, email, designation, password } = req.body;
             if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -45,7 +27,18 @@ const EmployeeController = {
             const pageSize = parseInt(req.query.pageSize) || 20;
             const skip = (page - 1) * pageSize;
             const [items, total] = await Promise.all([
-                prisma.employee.findMany({ skip, take: pageSize, orderBy: { createdAt: 'desc' } }),
+                prisma.employee.findMany({ 
+                    skip, 
+                    take: pageSize, 
+                    orderBy: { createdAt: 'desc' }, 
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        designation: true,
+                        status: true
+                    } 
+                }),
                 prisma.employee.count()
             ]);
             res.json({ page, pageSize, total, items });
