@@ -19,10 +19,8 @@ if (process.env.APP_ENV === 'local') {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
-
 // Auth routes
 app.use('/', authRoutes);
-
 // Protected routes
 app.use('/todos', authenticateToken, todoRoutes);
 app.use('/employees', authenticateToken, employeeRoutes);
