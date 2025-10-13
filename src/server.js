@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 import config from '../config/app.js';
 import todoRoutes from '../routes/todoRoutes.js';
 import employeeRoutes from '../routes/employeeRoutes.js';
@@ -7,6 +8,12 @@ import { authenticateToken } from '../app/middleware/authMiddleware.js';
 
 const app = express();
 app.use(express.json());
+
+if (process.env.APP_ENV === 'local') {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
+}
 
 // Health check
 app.get('/health', (req, res) => {
