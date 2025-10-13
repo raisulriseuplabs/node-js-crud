@@ -25,6 +25,6 @@ model Employee {
   password    String
   designation String? @db.Text
   email       String  @unique
-  status      String  @default('active')
+  status      String @default("active")
   createdAt   DateTime @default(now())
 }

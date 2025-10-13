@@ -11,11 +11,17 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio"
   },
-  "keywords": ["todo", "express", "prisma", "mysql"],
+  "keywords": [
+    "todo",
+    "express",
+    "prisma",
+    "mysql"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.15.0",
+    "bcrypt": "^6.0.0",
     "express": "^4.19.2"
   },
   "devDependencies": {
