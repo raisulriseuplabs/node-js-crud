@@ -3,6 +3,25 @@ import bcrypt from 'bcrypt';
 
 const EmployeeController = {
 
+    async uploadAvatar(req, res) {
+        try {
+            const id = parseInt(req.params.id);
+            const employee = await prisma.employee.findUnique({ where: { id } });
+            if (!employee) return res.status(404).json({ error: 'Employee not found' });
+            if (!req.file) return res.status(400).json({ error: 'No file uploaded or invalid file type/size' });
+            const avatarFileName = req.file.filename;
+            const avatarPath = `uploads/avatars/${avatarFileName}`;
+            await prisma.employee.update({
+                where: { id },
+                data: { avatar: avatarFileName }
+            });
+            res.json({ message: 'Avatar uploaded', fileName: avatarFileName, filePath: avatarPath });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: err.message || 'Internal server error' });
+        }
+    },
+
     async create(req, res) {
         try {
             const { name, email, designation, password } = req.body;

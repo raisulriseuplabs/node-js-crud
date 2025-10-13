@@ -15,15 +15,14 @@ if (process.env.APP_ENV === 'local') {
   app.use(morgan('combined'));
 }
 
-// Health check
+//Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
-// Auth routes
 app.use('/', authRoutes);
-// Protected routes
 app.use('/todos', authenticateToken, todoRoutes);
 app.use('/employees', authenticateToken, employeeRoutes);
+
 
 app.listen(config.port, () => {
   console.log(`Server listening on port ${config.port}`);
