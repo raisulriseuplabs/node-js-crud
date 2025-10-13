@@ -27,4 +27,12 @@ model Employee {
   email       String  @unique
   status      String @default("active")
   createdAt   DateTime @default(now())
+  refreshTokens RefreshToken[]
+}
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  employee  Employee @relation(fields: [userId], references: [id])
+  expiresAt DateTime
 }
