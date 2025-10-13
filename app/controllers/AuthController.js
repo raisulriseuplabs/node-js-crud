@@ -25,7 +25,7 @@ const AuthController = {
       const hashed = await bcrypt.hash(password, 12);
       const user = await prisma.employee.create({ data: { name, email, password: hashed, designation } });
       delete user.password;
-      res.status(201).json({ id: user.id, name: user.name, email: user.email, designation: user.designation });
+      res.status(201).json({ message: 'Registered successfully' });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Internal server error' });
@@ -44,7 +44,7 @@ const AuthController = {
       const refreshToken = generateRefreshToken(user);
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await prisma.refreshToken.create({ data: { token: refreshToken, userId: user.id, expiresAt } });
-      res.json({ accessToken, refreshToken });
+      res.json({ message: 'Logged in', accessToken, refreshToken });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Internal server error' });
@@ -57,6 +57,7 @@ const AuthController = {
       if (!refreshToken) return res.status(400).json({ error: 'Refresh token required' });
       const stored = await prisma.refreshToken.findUnique({ where: { token: refreshToken } });
       if (!stored) return res.status(401).json({ error: 'Invalid refresh token' });
+      if (stored.expiresAt < new Date()) return res.status(401).json({ error: 'Refresh token expired' });
       jwt.verify(refreshToken, refreshTokenSecret, async (err, payload) => {
         if (err) return res.status(401).json({ error: 'Invalid refresh token' });
         const user = await prisma.employee.findUnique({ where: { id: payload.userId } });
