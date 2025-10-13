@@ -1,0 +1,25 @@
+{
+  "name": "todo-api-prisma",
+  "version": "1.0.0",
+  "description": "Simple Todo CRUD API using Node.js, Express, Prisma, and MySQL",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:studio": "prisma studio"
+  },
+  "keywords": ["todo", "express", "prisma", "mysql"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.15.0",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prisma": "^5.15.0"
+  }
+}
