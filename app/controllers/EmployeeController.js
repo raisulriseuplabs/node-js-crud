@@ -8,9 +8,12 @@ const EmployeeController = {
             const id = parseInt(req.params.id);
             const employee = await prisma.employee.findUnique({ where: { id } });
             if (!employee) return res.status(404).json({ error: 'Employee not found' });
-            if (!req.file) return res.status(400).json({ error: 'No file uploaded or invalid file type/size' });
-            const avatarFileName = req.file.filename;
-            const avatarPath = `uploads/avatars/${avatarFileName}`;
+            const avatarFile = req.files && req.files.avatar && req.files.avatar[0];
+            if (!avatarFile) {
+                return res.status(400).json({ error: 'No file uploaded or invalid file type/size' });
+            }
+            const avatarFileName = avatarFile.filename;
+            const avatarPath = `${req.protocol}://${req.get('host')}/uploads/${avatarFileName}`;
             await prisma.employee.update({
                 where: { id },
                 data: { avatar: avatarFileName }
