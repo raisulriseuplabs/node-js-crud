@@ -30,10 +30,17 @@ model Employee {
   avatar      String?
   refreshTokens RefreshToken[]
 }
+
 model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
   userId    Int
   employee  Employee @relation(fields: [userId], references: [id])
   expiresAt DateTime
+}
+
+model Print {
+  id        Int      @id @default(autoincrement())
+  code      String    @unique
+  image     String
 }

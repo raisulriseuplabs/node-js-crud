@@ -13,7 +13,7 @@ const EmployeeController = {
                 return res.status(400).json({ error: 'No file uploaded or invalid file type/size' });
             }
             const avatarFileName = avatarFile.filename;
-            const avatarPath = `${req.protocol}://${req.get('host')}/uploads/${avatarFileName}`;
+            const avatarPath = `${req.protocol}://${req.get('host')}/contents/${avatarFileName}`;
             await prisma.employee.update({
                 where: { id },
                 data: { avatar: avatarFileName }
