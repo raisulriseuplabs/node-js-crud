@@ -58,7 +58,7 @@ const requestToOpenAI = async (query) => {
 
     const image_base64 = response.data[0].b64_json;
     const buffer = Buffer.from(image_base64, "base64");
-    const generatedImage = `contents/gen_${Date.now()}.png`;
+    const generatedImage = `contents/generated_${Date.now()}.png`;
     fs.writeFileSync(generatedImage, buffer);
 
     return {
