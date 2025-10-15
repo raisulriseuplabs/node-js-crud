@@ -4,10 +4,6 @@ import OpenAI from "openai";
 import fs from 'fs';
 import path from 'path';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const removeFile = (filePath) => {
   if (filePath) {
       fs.unlink(filePath, (err) => {
@@ -34,46 +30,74 @@ const requestToOpenAI = async (query) => {
     6. Output a clean, eCommerce-ready garment photo with a neutral background.
     `;
 
-
     const promptParts = ['Generate a high-quality, photorealistic clothing mockup image.'];
-    if (query.base_image) promptParts.push(`Use this as the base outfit image: "[base_image]".`);
+    if (query.base_image) promptParts.push(`Use first image as the base outfit image.`);
     if (query.fabric) promptParts.push(`Apply fabric texture: ${query.fabric}.`);
     if (query.color_html_code) promptParts.push(`Set the main garment color to: ${query.color_html_code}.`);
     if (query.print_image && query.print_file_scale_preset)
-      promptParts.push(`Overlay this print design (${query.print_file_scale_preset} scale): "[print_image]".`);
-    if (query.logo && query.logo_placement)
-      promptParts.push(`Place the logo "[logo_image]" on the ${query.logo_placement} chest area.`);
+      promptParts.push(`Overlay the second image as print design (${query.print_file_scale_preset} scale) on the front.`);
+    if (query.logo_image && query.logo_placement)
+      promptParts.push(`Place the third image as logo on the ${query.logo_placement} chest area.`);
     if (query.description) promptParts.push(`Design description: ${query.description}.`);
     if (query.render_size)
       promptParts.push(
         `Render size: ${query.render_size}. Use realistic lighting, true fabric texture, and professional fashion photography style.`
       );
 
-    const prompt = promptParts.join(" ");
+    const userPrompt = [
+          { type: "input_text", text: promptParts.join(" ") },
+          {
+            type: "input_image",
+            image_url: query.base_image,
+          },
+            query.logo_image ? {
+            type: "input_image",
+            image_url: query.logo_image,
+          } : null,
+            query.print_image ? {
+            type: "input_image",
+            image_url: query.print_image,
+          } : null,
+    ].filter(Boolean);
 
-    const response = await openai.images.generate({
-      model: "gpt-5",
-      input: [
-        { role: "system", content: systemPrompt },
-        { role: "user", contents: [
-          { type: "text", text: prompt },
-          { type: "input_image", base_image: query.base_image },
-          query.print_image ? { type: "input_image", print_image: query.print_image } : null,
-          query.logo_image ? { type: "input_image", logo_image: query.logo_image } : null,
-        ] },
-      ],
-      response_format: "b64_json",
-      size:
-        query.render_size && query.render_size === "large"
-          ? "2048x2048"
-          : query.render_size === "small"
-          ? "512x512"
-          : "1024x1024",
-      n: 1,
-    });
+    // const openai = new OpenAI();
+    // const response = await openai.responses.create({
+    //   model: "gpt-5",
+    //   input: [
+    //     {
+    //       role: "system",
+    //       content: systemPrompt,
+    //     },
+    //     {
+    //       role: "user",
+    //       content: userPrompt,
+    //     },
+    //   ],
+    //   text: {
+    //     format: {
+    //        type: "json_schema",
+    //        name: "image_response",
+    //         schema: {
+    //           type: "object",
+    //           properties: {
+    //             image_url: { type: "string", description: "URL of the generated image" },
+    //           },
+    //           required: ["image_url"],
+    //           additionalProperties: false,
+    //         },
+    //     },
+    //   },
+    // });
 
-    const image_base64 = response.data[0].b64_json;
-    const buffer = Buffer.from(image_base64, "base64");
+    // const output = response.output_text;
+    // const content = response.output_text ?JSON.parse(output) : null;
+    // if (!content || !content.image_url) throw new Error("No image URL received from OpenAI");
+    // const imageUrl = content.image_url;
+
+    const imageUrl = "https://cdn.styleforge.ai/renders/fleece-tee_fafafa_front_print25_logo-left_medium_2317.jpg"; // For testing purpose
+
+    const imageResponse = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    const buffer = imageResponse.data;
     const generatedImage = `contents/generated/gen_${Date.now()}.png`;
     fs.writeFileSync(generatedImage, buffer);
 
