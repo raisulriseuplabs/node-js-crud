@@ -2,6 +2,7 @@ import prisma from '../models/prismaClient.js';
 import axios from 'axios';
 import OpenAI from "openai";
 import fs from 'fs';
+import path from 'path';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,16 +16,33 @@ const removeFile = (filePath) => {
   }
 };
 
+const convertImageToBase64URL = (imagePath) => {
+  const imageBuffer = fs.readFileSync(imagePath);
+  return `data:image/png;base64,${imageBuffer.toString('base64')}`;
+};
+
 const requestToOpenAI = async (query) => {
   try {
+    const systemPrompt = `You are a professional fashion and textile image generation assistant.
+    Your task is to create ultra-realistic outfit mockups that look like real studio product photos.
+    Rules:
+    1. The garment should always maintain natural folds, shadows, and lighting consistency.
+    2. Apply the "color_html_code" and "fabric" realistically.
+    3. Overlay "[print_image]" in the correct scale and position.
+    4. Add the "[logo_image]" on the correct chest area per "logo_placement".
+    5. The result must NOT look cartoonish, painted, or AI-generated.
+    6. Output a clean, eCommerce-ready garment photo with a neutral background.
+    `;
+
+
     const promptParts = ['Generate a high-quality, photorealistic clothing mockup image.'];
-    if (query.image) promptParts.push(`Use this as the base outfit image: ${query.image}.`);
+    if (query.base_image) promptParts.push(`Use this as the base outfit image: "[base_image]".`);
     if (query.fabric) promptParts.push(`Apply fabric texture: ${query.fabric}.`);
     if (query.color_html_code) promptParts.push(`Set the main garment color to: ${query.color_html_code}.`);
     if (query.print_image && query.print_file_scale_preset)
-      promptParts.push(`Overlay this print design (${query.print_file_scale_preset} scale): ${query.print_image}.`);
+      promptParts.push(`Overlay this print design (${query.print_file_scale_preset} scale): "[print_image]".`);
     if (query.logo && query.logo_placement)
-      promptParts.push(`Place the logo (${query.logo}) on the ${query.logo_placement} chest area.`);
+      promptParts.push(`Place the logo "[logo_image]" on the ${query.logo_placement} chest area.`);
     if (query.description) promptParts.push(`Design description: ${query.description}.`);
     if (query.render_size)
       promptParts.push(
@@ -33,20 +51,18 @@ const requestToOpenAI = async (query) => {
 
     const prompt = promptParts.join(" ");
 
-    const systemPrompt = `You are a professional fashion and textile image generation assistant.
-    Your task is to create ultra-realistic outfit mockups that look like real studio product photos.
-    Rules:
-    - The garment should always maintain natural folds, shadows, and lighting consistency.
-    - Apply the "color_html_code" and "fabric" realistically.
-    - Overlay "print_image" in the correct scale and position.
-    - Add the "logo" on the correct chest area per "logo_placement".
-    - The result must NOT look cartoonish, painted, or AI-generated.
-    - Output a clean, eCommerce-ready garment photo with a neutral background.
-    `;
-
     const response = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt: `${systemPrompt}\n\n${prompt}`,
+      model: "gpt-5",
+      input: [
+        { role: "system", content: systemPrompt },
+        { role: "user", contents: [
+          { type: "text", text: prompt },
+          { type: "input_image", base_image: query.base_image },
+          query.print_image ? { type: "input_image", print_image: query.print_image } : null,
+          query.logo_image ? { type: "input_image", logo_image: query.logo_image } : null,
+        ] },
+      ],
+      response_format: "b64_json",
       size:
         query.render_size && query.render_size === "large"
           ? "2048x2048"
@@ -58,11 +74,11 @@ const requestToOpenAI = async (query) => {
 
     const image_base64 = response.data[0].b64_json;
     const buffer = Buffer.from(image_base64, "base64");
-    const generatedImage = `contents/generated_${Date.now()}.png`;
+    const generatedImage = `contents/generated/gen_${Date.now()}.png`;
     fs.writeFileSync(generatedImage, buffer);
 
     return {
-      generated_image: `${process.env.APP_URL}/contents/${generatedImage.split("/").pop()}`,
+      generated_image: `${process.env.APP_URL}/contents/generated/${generatedImage.split("/").pop()}`,
     };
   } catch (error) {
     console.error("❌ Error generating outfit image:", error);
@@ -95,18 +111,19 @@ const LLMController = {
           removeFile(logoFile.path);
           return res.status(400).json({ error: 'Invalid print file code' });
         }
-        query.print_image = `${process.env.APP_URL}/contents/${print.image}`;
+        const localImagePath = path.join(process.cwd(), 'contents/prints', print.image);
+        query.print_image = convertImageToBase64URL(localImagePath);
         if(print_file_scale_preset) query.print_file_scale_preset = print_file_scale_preset;
       }
 
       if(logoFile) {
         const logoFileName = logoFile.filename;
-        query.logo = `${process.env.APP_URL}/contents/${logoFileName}`;
+        query.logo_image = convertImageToBase64URL(logoFile.path);
         if(logo_placement) query.logo_placement = logo_placement;
       }
       
       const imageFileName = imageFile.filename;
-      query.image = `${process.env.APP_URL}/contents/${imageFileName}`;
+      query.base_image = convertImageToBase64URL(imageFile.path);
 
       const response = await requestToOpenAI(query);
 
@@ -120,6 +137,8 @@ const LLMController = {
   },
 
 };
+
+
 
 export default LLMController;
 
