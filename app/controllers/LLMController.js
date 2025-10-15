@@ -127,6 +127,8 @@ const LLMController = {
 
       const response = await requestToOpenAI(query);
 
+      //TODO: Save the generated image to the database
+
       res.status(200).json({ message: `Generated response`, data: response });
     } catch (err) {
       console.error(err);
