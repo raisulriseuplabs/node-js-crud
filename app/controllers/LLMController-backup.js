@@ -17,8 +17,9 @@ const convertImageToBase64URL = (imagePath) => {
   return `data:image/png;base64,${imageBuffer.toString('base64')}`;
 };
 
-const generatePrompt = (query) => {
-   const systemPrompt = `You are a professional fashion and textile image generation assistant.
+const requestToOpenAI = async (query) => {
+  try {
+    const systemPrompt = `You are a professional fashion and textile image generation assistant.
     Your task is to create ultra-realistic outfit mockups that look like real studio product photos.
     Rules:
     1. The garment should always maintain natural folds, shadows, and lighting consistency.
@@ -44,60 +45,65 @@ const generatePrompt = (query) => {
       );
 
     const userPrompt = [
-          { 
-            type: "input_text", 
-            text: promptParts.join(" ") 
-          },
+          { type: "input_text", text: promptParts.join(" ") },
           {
             type: "input_image",
-            image_url: query.base_image
+            image_url: query.base_image,
           },
-          query.print_image ? {
+            query.logo_image ? {
             type: "input_image",
-            image_url: query.print_image
+            image_url: query.logo_image,
           } : null,
-          query.logo_image ? {
+            query.print_image ? {
             type: "input_image",
-            image_url: query.logo_image
+            image_url: query.print_image,
           } : null,
-
     ].filter(Boolean);
-    return {
-      'systemPrompt': systemPrompt,
-      'userPrompt': userPrompt
-    };
-};
 
-const requestToOpenAI = async (query) => {
-  try {
-    const prompt = generatePrompt(query);
-    const openai = new OpenAI();
-    const response = await openai.responses.create({
-      model: "gpt-4.1",
-      input: [
-        {
-          role: "system",
-          content: prompt.systemPrompt,
-        },
-        {
-          role: "user",
-          content: prompt.userPrompt,
-        },
-      ],
-      tools: [{ type: "image_generation" }],
-    });
-    const imageData = response.output
-        .filter((output) => output.type === "image_generation_call")
-        .map((output) => output.result);
-    if (imageData.length > 0) {
-      const imageBase64 = imageData[0];
-      const generatedImage = `contents/generated/gen_${Date.now()}.png`;
-      fs.writeFileSync(generatedImage, Buffer.from(imageBase64, "base64"));
-      return `${process.env.APP_URL}/${generatedImage}`;
-    } else {
-      console.log(response.output.content);
-      return response.output.content;
-    }
+    // const openai = new OpenAI();
+    // const response = await openai.responses.create({
+    //   model: "gpt-5",
+    //   input: [
+    //     {
+    //       role: "system",
+    //       content: systemPrompt,
+    //     },
+    //     {
+    //       role: "user",
+    //       content: userPrompt,
+    //     },
+    //   ],
+    //   text: {
+    //     format: {
+    //        type: "json_schema",
+    //        name: "image_response",
+    //         schema: {
+    //           type: "object",
+    //           properties: {
+    //             image_url: { type: "string", description: "URL of the generated image" },
+    //           },
+    //           required: ["image_url"],
+    //           additionalProperties: false,
+    //         },
+    //     },
+    //   },
+    // });
+
+    // const output = response.output_text;
+    // const content = response.output_text ?JSON.parse(output) : null;
+    // if (!content || !content.image_url) throw new Error("No image URL received from OpenAI");
+    // const imageUrl = content.image_url;
+
+    const imageUrl = "https://cdn.styleforge.ai/renders/fleece-tee_fafafa_front_print25_logo-left_medium_2317.jpg";
+
+    const imageResponse = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    const buffer = imageResponse.data;
+    const generatedImage = `contents/generated/gen_${Date.now()}.png`;
+    fs.writeFileSync(generatedImage, buffer);
+
+    return {
+      generated_image: `${process.env.APP_URL}/contents/generated/${generatedImage.split("/").pop()}`,
+    };
   } catch (error) {
     console.error("❌ Error generating outfit image:", error);
     return {
