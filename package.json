@@ -30,7 +30,18 @@
     "openai": "^6.3.0"
   },
   "devDependencies": {
+    "@types/node": "^24.8.1",
     "nodemon": "^3.1.0",
-    "prisma": "^5.15.0"
-  }
+    "prisma": "^5.15.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raisulriseuplabs/node-js-crud.git"
+  },
+  "bugs": {
+    "url": "https://github.com/raisulriseuplabs/node-js-crud/issues"
+  },
+  "homepage": "https://github.com/raisulriseuplabs/node-js-crud#readme"
 }
